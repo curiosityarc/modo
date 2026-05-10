@@ -8,14 +8,36 @@ Reference for every mode, skill, and agent in `modo`.
 
 Modes are entered with a slash command. They change Claude's headspace and output destination for the session. Switch explicitly when the work type changes.
 
-### `/build` — Build Mode
+### `/domain` — Domain Mode
 
-**Headspace:** Implementation  
-**Reads:** CLAUDE.md, docs/features/, docs/decisions/  
-**Writes:** Code (in sub-repos), docs/domain/product-capabilities.md  
-**Switch to:** `/design` for non-trivial design questions, `/groom` for unclear requirements, `/plan` for priority questions
+**Headspace:** Domain knowledge production  
+**Reads:** Domain expert input, existing docs/domain/  
+**Writes:** docs/domain/*.md  
+**Switch to:** `/groom` when knowledge informs a feature, `/design` when it informs architecture
 
-Reads CLAUDE.md and relevant docs before starting. Checks the task board. Spawns sub-agents per service for parallel work. After shipping: closes the board item, creates issues for newly discovered tasks, updates product-capabilities.md, records design choices as ADRs.
+Distinguishes established knowledge, working hypotheses, and unknowns. Does not implement.
+
+---
+
+### `/ux` — UX Mode
+
+**Headspace:** User experience and flow design  
+**Reads:** CLAUDE.md, docs/features/ (existing), docs/domain/  
+**Writes:** docs/features/*/ux.md  
+**Switch to:** `/domain` for unresolved domain questions, `/groom` to formalise requirements, `/design` when ready for technical design
+
+Leads with the user's goal and context before discussing interface. Describes flows in steps (what the user sees, does, and what happens next). Uses ASCII or Mermaid diagrams. Does not design the technical implementation.
+
+---
+
+### `/groom` — Groom Mode
+
+**Headspace:** Feature requirements  
+**Reads:** CLAUDE.md, docs/domain/, docs/features/ (existing)  
+**Writes:** docs/features/*/requirements.md  
+**Switch to:** `/domain` for unresolved expert knowledge, `/design` when ready, `/plan` for priority decisions
+
+Leads with functional questions, not technical ones. Scopes to minimal deliverable. Captures open questions with owners. Does not design solutions.
 
 ---
 
@@ -30,14 +52,14 @@ No implementation. Presents 2–3 options with tradeoffs. Flags irreversible dec
 
 ---
 
-### `/groom` — Groom Mode
+### `/build` — Build Mode
 
-**Headspace:** Feature requirements  
-**Reads:** CLAUDE.md, docs/domain/, docs/features/ (existing)  
-**Writes:** docs/features/*/requirements.md  
-**Switch to:** `/domain` for unresolved expert knowledge, `/design` when ready, `/plan` for priority decisions
+**Headspace:** Implementation  
+**Reads:** CLAUDE.md, docs/features/, docs/decisions/  
+**Writes:** Code (in sub-repos), docs/domain/product-capabilities.md  
+**Switch to:** `/design` for non-trivial design questions, `/groom` for unclear requirements, `/plan` for priority questions
 
-Leads with functional questions, not technical ones. Scopes to minimal deliverable. Captures open questions with owners. Does not design solutions.
+Reads CLAUDE.md and relevant docs before starting. Checks the task board. Spawns sub-agents per service for parallel work. Before switching modes mid-session, saves a handoff note to `docs/wip/session-capture-<date>.md`. After shipping: closes the board item, creates issues for newly discovered tasks, updates product-capabilities.md, records design choices as ADRs.
 
 ---
 
@@ -63,17 +85,6 @@ Shows query before running. Prefers read-only. Flags data quality issues explici
 
 ---
 
-### `/domain` — Domain Mode
-
-**Headspace:** Domain knowledge production  
-**Reads:** Domain expert input, existing docs/domain/  
-**Writes:** docs/domain/*.md  
-**Switch to:** `/groom` when knowledge informs a feature, `/design` when it informs architecture
-
-Distinguishes established knowledge, working hypotheses, and unknowns. Does not implement.
-
----
-
 ## Skills
 
 Skills are invoked with a slash command and perform a defined operation.
@@ -90,9 +101,51 @@ Git operations following the project's configured branching model. Covers commit
 
 ---
 
-### `/agile-board`
+### `/board`
 
 Task management — create issues, move cards, assign work, close on ship. Reads board config from `.claude/modo-config.md → ## Agile Board` and team roster from `.claude/team.md`. Supports GitHub Issues, Linear, and Jira.
+
+---
+
+### `/test`
+
+Test session — reviews a feature's requirements for testability, produces `docs/features/<feature>/test-plan.md` with test cases (happy path, edge cases, failure paths), maps each acceptance criterion to a test case ID, and distinguishes automated vs manual coverage. Also runs a release readiness check. When a test run fails, classifies the failure (code bug / requirements gap / test setup) and hands off to `/build` or `/groom` with a failure doc as context.
+
+---
+
+### `/review`
+
+Structured code review — reads a branch diff and checks it against CLAUDE.md conventions, ADRs in `docs/decisions/`, and the feature's requirements and design docs. Produces `docs/wip/review-<branch>-<date>.md` with blocking and non-blocking findings, architecture conformance checklist, and a sign-off section for the architect or tech lead.
+
+---
+
+### `/security-review`
+
+Security-focused review — checks changed code against OWASP Top 10 (injection, auth, authorisation, secrets, input validation, dependencies, cryptography, cloud/IAM). Produces `docs/wip/security-review-<branch>-<date>.md`. Critical and High findings block merge.
+
+---
+
+### `/incident`
+
+Production incident fast-path — triage scope and severity, open a tracking issue, coordinate the BUILD → REVIEW → DEPLOY fast-path (bypassing GROOM and DESIGN), and produce a post-mortem for P1/P2 incidents. Use only when something is broken in production right now.
+
+---
+
+### `/analysis`
+
+Change impact and dependency analysis — assess the blast radius of a proposed change before building, or evaluate the effect of a shipped change after the fact. Classifies each consumer as owned, external, or cascading. Produces `docs/wip/analysis-<slug>-<date>.md` with a migration path recommendation.
+
+---
+
+### `/data-model`
+
+Schema reference and change management — read the current schema for any table, propose new columns or tables, draft migrations with rollback, and assess query/API impact. Documents schema decisions as ADRs. Enforces safety rules: no dropping columns without deprecation, no NOT NULL without default or backfill, no editing applied migrations.
+
+---
+
+### `/simplify`
+
+Code simplification pass — reviews recently changed code for over-engineering, dead code, unnecessary abstractions, and duplication, then fixes what's found. Runs the test suite after to confirm no behaviour change. Reports a summary of what was removed and why.
 
 ---
 
@@ -132,7 +185,7 @@ One agent per service, generated from the templates in `templates/agents/`. Each
 - Runs the service's test suite before claiming completion
 - Does not touch other repos
 
-Available templates: FastAPI, Next.js, Django, Express/Node, React/Vite, generic.
+Available templates: FastAPI, Next.js, Django, Express/Node, React/Vite, Infrastructure/IaC, generic.
 
 ---
 

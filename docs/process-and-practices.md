@@ -12,6 +12,24 @@ Software teams lose context constantly. A feature gets half-designed in a conver
 
 ---
 
+## The full workflow
+
+```
+BACKLOG                          SPRINT                                    RELEASE
+┌──────────────┐    ┌─────────────────────────────────────────┐    ┌──────────┐
+│ /domain      │    │ /groom → /design → /build → /test ─────────→ /review │    │ /deploy  │
+│ /ux          │ →  │                               └─ fail → /build        │ →  │          │
+│ /plan        │    │                                                        │    │          │
+└──────────────┘    └─────────────────────────────────────────────────────┘    └──────────┘
+
+Production fast-path:  /incident ──────────────────→ /build → /review → /deploy
+```
+
+**Workflow skills** (used across all phases):
+`/git` · `/board` · `/analysis` · `/data-model` · `/security-review` · `/simplify`
+
+---
+
 ## The producer/consumer model
 
 Every mode either produces or consumes:
@@ -19,11 +37,15 @@ Every mode either produces or consumes:
 | Mode | Produces | Consumes |
 |------|----------|----------|
 | `/domain` | `docs/domain/` | — |
-| `/groom` | `docs/features/*/requirements.md` | `docs/domain/` |
+| `/ux` | `docs/features/*/ux.md` | `docs/domain/`, user research |
+| `/groom` | `docs/features/*/requirements.md` | `docs/domain/`, `docs/features/*/ux.md` |
 | `/design` | `docs/features/*/design.md`, `docs/decisions/` | `docs/features/*/requirements.md`, `docs/domain/` |
 | `/build` | Code, `docs/domain/product-capabilities.md` | All docs, task board |
+| `/test` | `docs/features/*/test-plan.md` | `docs/features/*/requirements.md` |
+| `/review` | `docs/wip/review-*.md` | Diff, CLAUDE.md, docs/decisions/ |
 | `/plan` | `docs/plans/`, board card moves | All docs, task board state |
 | `/data` | `docs/reports/` | Database, `docs/domain/` |
+| `/incident` | Tracking issue, `docs/wip/postmortem-*.md` | Error logs, recent deploys |
 
 `/plan` is the integrator — it consumes everything and decides what to work on next. It never produces domain knowledge, requirements, or designs.
 
@@ -45,25 +67,44 @@ The discipline: **switch modes when the headspace or output destination changes.
 
 ## How a session should flow
 
+### Starting a feature (full flow)
+
+1. `/domain` — capture any expert knowledge needed to understand the problem space; output to `docs/domain/`
+2. `/ux` — define the user flow and interface behaviour; output to `docs/features/<feature>/ux.md`
+3. `/groom` — formalise requirements and acceptance criteria; output to `docs/features/<feature>/requirements.md`
+4. `/design` — design the technical solution; output to `docs/features/<feature>/design.md` and/or `docs/decisions/`
+5. `/board` — create the task board item if it doesn't exist yet
+6. `/build` — implement; reference the docs from steps 1–4
+7. `/test` — write and run the test plan; output to `docs/features/<feature>/test-plan.md`
+   - If tests fail: document the failure, switch back to `/build` with context, re-test after fix
+8. `/security-review` — if the change touches auth, input handling, or permissions
+9. `/review` — architect or tech lead code review before merge
+10. `/git` — commit and push
+11. `/deploy` — ship to production
+
+Not every feature needs every step. A minor bug fix may go straight to `/build → /git → /deploy`. A greenfield feature needs the full flow.
+
 ### Starting a build session
 
 1. Open Claude Code in your project directory
-2. Check the task board for the issue you're working on (or use `/agile-board` to find it)
+2. Check `/board` for the issue you're working on
 3. Type `/build` — Claude reads CLAUDE.md and any relevant docs before writing a line of code
 4. Claude confirms what it understood about the task before starting
+5. **If switching modes mid-session:** save a handoff note to `docs/wip/session-capture-<date>.md` before switching; read it when returning to `/build`
 
-### Starting a feature
+### Responding to a production incident
 
-1. `/groom` — clarify requirements with the domain expert and product owner; output to `docs/features/<feature>/requirements.md`
-2. `/design` — if non-trivial, design the solution; output to `docs/features/<feature>/design.md` and/or `docs/decisions/`
-3. `/agile-board` — create the task board item if it doesn't exist yet
-4. `/build` — implement; reference the docs from steps 1–2
-5. `/git` — commit and push
+1. `/incident` — triage scope and severity; open a tracking issue immediately
+2. Switch to `/build` — tight scope, fix the symptom, preserve rollback path
+3. `/review` — focused review: does it fix the symptom, does it introduce new risk?
+4. `/deploy` — confirm environment and rollback plan before deploying
+5. Verify resolution; update the tracking issue
+6. `/incident` post-mortem — for P1/P2: write `docs/wip/postmortem-<slug>-<date>.md`; file follow-up items on the board
 
 ### Starting a planning session
 
 1. `/plan` — read current board state, read `docs/domain/product-capabilities.md`, triage and sequence
-2. Board card moves happen through `/agile-board` or the browser
+2. Board card moves happen through `/board` or the browser
 3. Save non-trivial planning notes to `docs/plans/<topic>-<date>.md`
 
 ### Exploring data
@@ -74,23 +115,40 @@ The discipline: **switch modes when the headspace or output destination changes.
 
 ---
 
+## Workflow skills: when to use them
+
+These skills cross-cut the sprint phases — they can be invoked from any point in the flow.
+
+| Skill | When to reach for it |
+|-------|---------------------|
+| `/git` | Committing, branching, opening a PR |
+| `/board` | Creating an issue, moving a card, assigning work, closing on ship |
+| `/analysis` | Before changing a shared interface: "what breaks if we change X?" |
+| `/data-model` | Before writing a query against an unfamiliar table; proposing a schema change |
+| `/security-review` | Before merging anything that touches auth, input, secrets, or IAM |
+| `/simplify` | After a build session when the implementation feels overbuilt; on periodic cleanup passes |
+
+---
+
 ## Docs structure
 
 ```
 docs/
 ├── domain/        Expert knowledge — the science or logic behind the product
-├── features/      One folder per feature: requirements.md, design.md
+├── features/      One folder per feature: ux.md, requirements.md, design.md, test-plan.md
 ├── decisions/     Architecture Decision Records (ADRs)
+├── plans/         Planning and prioritisation notes
+├── reports/       Data analysis findings
 ├── ops/           Human-owned operational files — Claude does not modify these unless asked
 ├── backlog/       Feature parking lot — promoted to task board by human decision only
-├── wip/           Ephemeral session captures — not a task board
-├── plans/         Planning and prioritisation notes
-└── reports/       Data analysis findings
+└── wip/           Ephemeral session captures, review reports, post-mortems — not a task board
 ```
 
 **`docs/ops/` is human-owned.** Files here (field actions, pending decisions, operational runbooks) are written and maintained by people, not by Claude. Claude reads them for context but does not modify them without explicit instruction.
 
 **`docs/backlog/feature-ideas.md` is a parking lot**, not a task board. Ideas here are promoted to the task board by a human. Claude does not move entries autonomously.
+
+**`docs/wip/` is ephemeral.** Session captures, review reports, test failure notes, and post-mortems live here. They are working documents, not permanent records. Promote findings to the appropriate permanent location (decisions/, domain/, features/) when they stabilise.
 
 ---
 
@@ -123,7 +181,7 @@ Memory supplements CLAUDE.md — it holds evolving context that doesn't belong i
 
 ## Operational skills
 
-Beyond the core modes, `modo` projects grow domain-specific skills over time: skills that encode a recurring multi-step procedure (data backfill, seed data insertion, a structured review of domain-specific entities). These live in `.claude/skills/` in the project repo.
+Beyond the core modes and workflow skills, `modo` projects grow domain-specific skills over time: skills that encode a recurring multi-step procedure (data backfill, seed data insertion, a structured review of domain-specific entities). These live in `.claude/skills/` in the project repo.
 
 Run `/suggest-skills` after a few weeks of work to discover what recurring patterns are worth encoding as skills.
 

@@ -9,6 +9,14 @@ Switch out when:
 - Domain or expert knowledge is unresolved → `/domain`
 - A data question needs exploring before coding → `/data`
 
+**Before switching out mid-session:** save a handoff note to `docs/wip/session-capture-<date>.md` with:
+- What was completed in this session
+- What is in progress (specific file, function, or step)
+- What is blocked and why
+- The next concrete action when resuming
+
+**On re-entering `/build`:** check `docs/wip/` for a recent session capture for this feature and re-state the in-progress context before continuing.
+
 ## Behaviour
 
 Before starting:

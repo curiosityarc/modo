@@ -8,18 +8,33 @@
 
 ## Install modo
 
-**From the official Anthropic marketplace:**
+**Manual install (current recommended path):**
+
+The Claude Code plugin marketplace is not yet publicly available. Install by cloning the repo and symlinking or copying the plugin directory:
+
+```bash
+# Clone alongside your project (or anywhere convenient)
+git clone https://github.com/curiosityarc/modo /path/to/modo
+
+# In your project directory, wire the plugin
+mkdir -p .claude
+ln -s /path/to/modo/.claude-plugin .claude/plugins/modo
+```
+
+Then run `/setup` — Claude Code loads skills and commands from `.claude/` automatically.
+
+**From the official Anthropic marketplace (when available):**
 ```bash
 /plugin install modo@claude-plugins-official
 ```
 
-**From the Curiosity Arc marketplace:**
+**From the Curiosity Arc marketplace (when available):**
 ```bash
 /plugin marketplace add curiosityarc/modo
 /plugin install modo@curiosityarc
 ```
 
-After installing, run `/reload-plugins` to apply without restarting.
+After marketplace install, run `/reload-plugins` to apply without restarting.
 
 ---
 

@@ -9,15 +9,36 @@ A structured developer methodology harness for Claude Code.
 Software teams waste context constantly: half-designed features get built, build sessions derail into planning debates, agronomic (or domain) questions get answered with guesses. `modo` imposes a light discipline: **each slash command puts Claude into a distinct headspace with a defined output destination.** Switching is explicit. Outputs are saved. Nothing important lives only in a conversation.
 
 ```
-/build   → implementation session — reads docs, checks task board, ships
-/design  → technical trade-offs — produces docs/decisions/ and docs/features/*/design.md
-/groom   → feature requirements — produces docs/features/*/requirements.md
-/plan    → roadmap and prioritisation — consumes docs, moves board cards
-/data    → data exploration — produces docs/reports/
-/domain  → domain knowledge — produces docs/domain/
-/git     → commit, branch, PR — reads project branching model
-/agile-board → task creation, card movement, team assignment
-/deploy  → guided deployment with preflight and verification
+Backlog
+/domain          → domain knowledge — produces docs/domain/
+/ux              → user flow and layout design — produces docs/features/*/ux.md
+
+Sprint
+/groom           → feature requirements — produces docs/features/*/requirements.md
+/design          → technical trade-offs — produces docs/decisions/ and docs/features/*/design.md
+/build           → implementation — reads docs, checks task board, ships
+/test            → test planning and QA pass — produces docs/features/*/test-plan.md
+/review          → code review — checks diff against CLAUDE.md, ADRs, requirements
+
+Release
+/deploy          → guided deployment with preflight and post-deploy verification
+
+Production fast-path
+/incident        → triage → BUILD → REVIEW → DEPLOY → post-mortem
+
+Workflow skills
+/git             → commit, branch, PR — reads project branching model
+/board           → task creation, card movement, team assignment
+/analysis        → change impact and dependency analysis
+/data-model      → schema reference and migration management
+/security-review → OWASP-based security pass on changed code
+/simplify        → code simplification — remove over-engineering, dead code, abstractions
+
+Planning and maintenance
+/plan            → roadmap and prioritisation — consumes docs, moves board cards
+/data            → data exploration — produces docs/reports/
+/setup           → first-time configuration — generates config, agents, hooks, docs scaffold
+/suggest-skills  → discover recurring patterns worth encoding as project skills
 ```
 
 ## Install
