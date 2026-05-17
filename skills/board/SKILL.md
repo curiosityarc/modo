@@ -35,8 +35,12 @@ Read the column flow from config. Common flows:
 ### Closing on ship
 
 When a task ships:
-- Close the issue with a brief comment: what was done, date, any follow-up items created
-- Use `closes #N` in the final commit (via `/git`), not here
+1. Close the issue with a brief comment: what was done, date, any follow-up items created
+2. Use `closes #N` in the final commit (via `/git`), not here
+3. **Unblock dependents:** search for any open issues that list this issue as a blocker (search for `#N`, `blocks`, or `blocked by` in open issue bodies and comments). For each one found:
+   - Remove or update the blocking reference in the issue body
+   - If the issue was in a "Blocked" column or had a "blocked" label, move it to the appropriate ready/backlog column and remove the label
+   - Leave a comment on the unblocked issue noting that the blocker (`#N`) has shipped and it can proceed
 
 ### Handoffs and assignments
 
